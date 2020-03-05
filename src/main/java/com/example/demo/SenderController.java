@@ -8,6 +8,8 @@ import com.google.firebase.messaging.FcmOptions;
 import com.google.firebase.messaging.FirebaseMessaging;
 import com.google.firebase.messaging.FirebaseMessagingException;
 import com.google.firebase.messaging.Message;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -28,6 +30,9 @@ import java.util.HashMap;
 @RestController
 @RequestMapping("/sender")
 public class SenderController {
+
+//    private static final Logger LOGGER = LoggerFactory.getLogger(SenderController.class);
+    Logger logger = LoggerFactory.getLogger(SenderController.class);
 
 
     private String keyPath = "eta24-test-firebase-adminsdk-1d430-dca759764e.json";
@@ -51,12 +56,15 @@ public class SenderController {
 
     @RequestMapping(method = RequestMethod.GET)
     public String getTest() {
+        logger.info("An INFO Message");
         return "Hello";
     }
 
     @RequestMapping(method = RequestMethod.POST, path = "registerDevice")
     public void registerDevice(@RequestBody DeviceDto deviceDto) {
         devices.put(deviceDto.getImei(), new DeviceStatus(deviceDto.getImei(), deviceDto.getFcmToken(), false));
+        logger.info("registerDevice imei" + deviceDto.getImei() + "token " + deviceDto.getFcmToken());
+
     }
 
     @RequestMapping(method = RequestMethod.POST, path = "starSendPush")
@@ -67,6 +75,8 @@ public class SenderController {
         }
 
         deviceStatus.setSend(true);
+        logger.info("starSendPush imei" + deviceDto.getImei());
+
     }
 
     @RequestMapping(method = RequestMethod.POST, path = "stopSendPush")
@@ -77,11 +87,14 @@ public class SenderController {
         }
 
         deviceStatus.setSend(false);
+        logger.info("stopSendPush imei" + deviceDto.getImei());
+
     }
 
     @Scheduled(fixedRate = 10000)
     private void internalStarSendPush() {
-        System.out.println("internalStarSendPush");
+        logger.info("internalStarSendPush");
+
         devices.forEach((imei, device) -> {
             if (device.isSend()) {
                 sendPush(device.fcmToken);
@@ -95,7 +108,8 @@ public class SenderController {
         try {
             FirebaseMessaging.getInstance().send(message);
         } catch (FirebaseMessagingException e) {
-            e.printStackTrace();
+            logger.error("Token " + fcmToken + " Message " + e.getMessage());
+            logger.error("sendPush", e);
         }
 
     }
